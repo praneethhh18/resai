@@ -1,0 +1,144 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's basic profile within the Dish Directory application.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique ID of the user from Firebase Authentication."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "email": {
+            "type": "string",
+            "description": "The user's email address."
+        },
+        "profilePictureUrl": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "email"
+      ]
+    },
+    "Notification": {
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for a user.",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "The content of the notification message."
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Indicates if the notification has been read."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the notification was created."
+        },
+        "link": {
+          "type": "string",
+          "description": "An optional link to navigate to when the notification is clicked."
+        }
+      },
+      "required": ["message", "read", "createdAt"]
+    },
+    "UserRecipe": {
+        "title": "UserRecipe",
+        "type": "object",
+        "description": "A recipe submitted by a user.",
+        "properties": {
+            "authorId": { "type": "string" },
+            "authorName": { "type": "string" },
+            "name": { "type": "string" },
+            "description": { "type": "string" },
+            "imageUrl": { "type": "string", "format": "uri" },
+            "ingredients": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string" },
+                        "measure": { "type": "string" }
+                    },
+                    "required": ["name", "measure"]
+                }
+            },
+            "instructions": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["authorId", "authorName", "name", "imageUrl", "ingredients", "instructions", "createdAt"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "type": "object",
+      "description": "A message submitted through the contact form.",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email address of the person sending the message."
+        },
+        "message": {
+          "type": "string",
+          "description": "The content of the message."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the message was submitted."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["new", "read", "archived"],
+            "description": "The status of the contact message."
+        }
+      },
+      "required": ["email", "message", "createdAt", "status"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "google.com"
+    ]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Stores user profile information. Each document ID is the user's UID from Firebase Auth."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+        "schema": {
+            "$ref": "#/entities/Notification"
+        },
+        "description": "A subcollection storing notifications for a specific user."
+    },
+    "/userRecipes/{recipeId}": {
+        "schema": {
+            "$ref": "#/entities/UserRecipe"
+        },
+        "description": "A collection of recipes submitted by users."
+    },
+    "/contactMessages/{messageId}": {
+        "schema": {
+            "$ref": "#/entities/ContactMessage"
+        },
+        "description": "A collection of messages submitted through the contact form."
+    }
+  }
+}

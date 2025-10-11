@@ -1,0 +1,78 @@
+/**
+ * @description This ruleset enforces a strict user-ownership model for user profiles and their associated notifications.
+ * All data is nested under `/users/{userId}`, ensuring that users can only access their own profile data and notifications.
+ *
+ * @data_structure
+ * - `/users/{userId}`: User profile documents, where `{userId}` matches the Firebase Auth UID.
+ * - `/users/{userId}/notifications/{notificationId}`:  A subcollection of notifications for each user.
+ *
+ * @key_security_decisions
+ * - Users can only read and write their own profile data.
+ * - Users can only read and write their own notifications.
+ * - Listing all users is disallowed.
+ *
+ * @denormalization_for_authorization Not applicable in this ruleset
+ * @structural_segregation Not applicable in this ruleset
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /databases/{database}/documents/users/{userId}
+     * @allow (create) User 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2' can create their profile if userId matches their auth.uid.
+     * @deny (create) User 'randomUid' cannot create a profile with userId 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2'.
+     * @allow (get) User 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2' can read their profile.
+     * @deny (get) User 'randomUid' cannot read the profile of user 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2'.
+     * @allow (update) User 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2' can update their profile.
+     * @deny (update) User 'randomUid' cannot update the profile of user 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2'.
+     * @allow (delete) User 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2' can delete their profile.
+     * @deny (delete) User 'randomUid' cannot delete the profile of user 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2'.
+     * @principle Enforces document ownership for all operations on user profiles.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Listing all users is not permitted.
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to notifications for a specific user.
+     * @path /databases/{database}/documents/users/{userId}/notifications/{notificationId}
+     * @allow (create) User 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2' can create a notification under their profile.
+     * @deny (create) User 'randomUid' cannot create a notification under user 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2''s profile.
+     * @allow (get) User 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2' can read a notification under their profile.
+     * @deny (get) User 'randomUid' cannot read a notification under user 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2''s profile.
+     * @allow (list) User 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2' can list notifications under their profile.
+     * @deny (list) User 'randomUid' cannot list notifications under user 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2''s profile.
+     * @allow (update) User 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2' can update a notification under their profile.
+     * @deny (update) User 'randomUid' cannot update a notification under user 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2''s profile.
+     * @allow (delete) User 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2' can delete a notification under their profile.
+     * @deny (delete) User 'randomUid' cannot delete a notification under user 'zoetzBJ6rrVt1kPSRaWwEQZiYiz2''s profile.
+     * @principle Enforces document ownership for all operations on user notifications.
+     */
+    match /users/{userId}/notifications/{notificationId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
+  }
+}
